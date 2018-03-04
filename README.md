@@ -1,3 +1,15 @@
+# React notes
+
+- Setting state:
+  - Prefer using previous state (state is updated async)
+  - New state to be wrapped in (), otherwise JS will eval as function body with label (with no return keyword, thus no returned value)
+  ```javascript
+          this.setState((prevState) => ({
+              ticks: prevState.ticks + 1
+          }));
+  ```
+
+# React create app
 This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
 
 Below you will find some information on how to perform common tasks.<br>
