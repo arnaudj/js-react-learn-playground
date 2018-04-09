@@ -1,8 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
-import registerServiceWorker from './registerServiceWorker';
+
+// Select root app:
+import App from './App1'; // General (examples, and thinking in react)
+//import App from './components/tutos/todos/AppTodos'; // General (examples, and thinking in react)
 
 ReactDOM.render(<App />, document.getElementById('root'));
-registerServiceWorker();
