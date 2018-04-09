@@ -10,18 +10,12 @@
   ```
 
 # Examples
-<<<<<<< HEAD
-- A simple stateful component: [code](src/components/examples/simplestateful/ComponentStatefulWithArrowFunctionHandler.js)
-- Tutorial [Thinking in React](https://reactjs.org/docs/thinking-in-react.html): [code](src/components/examples/thinkinginreact/ThinkingInReact.js)
-
-=======
 ## React
 - A simple stateful component: [code](src/examples/components/ComponentStatefulWithArrowFunctionHandler.js)
 - Tutorial [Thinking in React](https://reactjs.org/docs/thinking-in-react.html): [code](src/thinkinginreact/components/ThinkingInReact.js)
 
 ## Redux
 - Redux Todo list [tutorial](https://github.com/reactjs/redux/blob/master/examples/todos): [code](src/todos)
->>>>>>> 60e1af8... RFT Tidy components dir for upcoming samples
 
 # React create app
 This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
