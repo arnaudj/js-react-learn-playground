@@ -3,13 +3,13 @@ import * as actionTypes from './actionTypes';
 let nextTodoId = 0
 
 export const addTodo = text => ({
-  type: 'ADD_TODO',
+  type: actionTypes.ADD_TODO,
   id: nextTodoId++,
   text
 })
 
 export const setVisibilityFilter = filter => ({
-  type: 'SET_VISIBILITY_FILTER',
+  type: actionTypes.SET_VISIBILITY_FILTER,
   filter
 })
 
