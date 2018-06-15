@@ -1,3 +1,5 @@
+import * as actionTypes from './actionTypes';
+
 let nextTodoId = 0
 
 export const addTodo = text => ({
@@ -12,7 +14,7 @@ export const setVisibilityFilter = filter => ({
 })
 
 export const toggleTodo = id => ({
-  type: 'TOGGLE_TODO',
+  type: actionTypes.TOGGLE_TODO,
   id
 })
 

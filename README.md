@@ -12,10 +12,12 @@
   - Pitfalls:
     - `connect()`: takes functions as parameter (state to props, dispatch to props)
     - `combineReducers()`: takes 1 object, with each key as a state sub domain
-    ```combineReducers({
-      todos,
-      visibilityFilter
-    ```}))
+    ```javascript
+    combineReducers({
+        todos,
+        visibilityFilter
+    });
+    ```
 
 # Examples
 ## React
