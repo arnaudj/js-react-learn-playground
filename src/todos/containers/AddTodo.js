@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { addTodo } from '../actions';
+import { saveAddTodo } from '../actions';
 
 const AddTodo = ({ dispatch }) => {
     let input
@@ -12,7 +12,7 @@ const AddTodo = ({ dispatch }) => {
                     if (!input.value.trim()) {
                         return
                     }
-                    dispatch(addTodo(input.value));
+                    dispatch(saveAddTodo(input.value));
                     input.value = '';
                 }}
             >

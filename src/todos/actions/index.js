@@ -8,6 +8,14 @@ export const addTodo = text => ({
   text
 })
 
+// save todo to remote server (simulate roundtrip time)
+export const saveAddTodo = text => (
+  (dispatch, getState) => {
+    setTimeout(() => {
+      dispatch(addTodo(text))
+    }, 1500);
+  })
+
 export const setVisibilityFilter = filter => ({
   type: actionTypes.SET_VISIBILITY_FILTER,
   filter
