@@ -5,6 +5,7 @@ import './index.css';
 // Select root app:
 //import App from './examples/App';
 //import App from './thinkinginreact/App';
-import App from './todos/App';
+//import App from './todos/App';
+import App from './reddit/App';
 
 ReactDOM.render(<App />, document.getElementById('root'));

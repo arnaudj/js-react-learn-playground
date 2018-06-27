@@ -27,5 +27,7 @@
 ## Redux
 - Redux Todo list [tutorial](https://github.com/reactjs/redux/blob/master/examples/todos): [code](src/todos)
 
+- Redux Reddit [tutorial](https://redux.js.org/advanced/example-reddit-api): [code](src/reddit)
+
 # Misc
 - Doc for [Create React App](create-react-app.md)
