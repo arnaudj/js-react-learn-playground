@@ -19,6 +19,13 @@
     });
     ```
 
+- Prettier:
+  - Enable at editor.formatOnSave, cf [vscode extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+  - Remove unicode characters blocking format: replace to empty: `[^\x00-\x7f]`
+
+- ReactJS code snippets:
+  - [vscode extension](https://marketplace.visualstudio.com/items?itemName=xabikos.ReactSnippets)
+
 # Examples
 ## React
 - A simple stateful component: [code](src/examples/components/ComponentStatefulWithArrowFunctionHandler.js)
