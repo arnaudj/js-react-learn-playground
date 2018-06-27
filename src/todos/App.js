@@ -4,10 +4,10 @@ import { composeWithDevTools } from 'redux-devtools-extension/developmentOnly';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 
-import Footer from './Footer'
-import AddTodo from '../containers/AddTodo'
-import VisibleTodoList from '../containers/VisibleTodoList'
-import rootReducer from '../reducers'
+import Footer from './components/Footer'
+import AddTodo from './containers/AddTodo'
+import VisibleTodoList from './containers/VisibleTodoList'
+import rootReducer from './reducers'
 
 const composeEnhancers = composeWithDevTools({
   name: 'MyApp', actionsBlacklist: ['REDUX_STORAGE_SAVE']
