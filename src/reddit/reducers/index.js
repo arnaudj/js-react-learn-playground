@@ -1,62 +1,53 @@
 import { combineReducers } from "redux";
+import { handleActions } from "redux-actions";
+
 import {
-  SELECT_SUBREDDIT,
-  INVALIDATE_SUBREDDIT,
-  REQUEST_POSTS,
-  RECEIVE_POSTS
+  selectSubreddit,
+  requestPosts,
+  receivePosts,
+  invalidateSubreddit
 } from "../actions";
 
-function selectedSubreddit(state = "reactjs", action) {
-  switch (action.type) {
-    case SELECT_SUBREDDIT:
-      return action.subreddit;
-    default:
-      return state;
-  }
-}
-
-function posts(
-  state = {
-    isFetching: false,
-    didInvalidate: false,
-    items: []
+const selectedSubreddit = handleActions(
+  {
+    [selectSubreddit]: (state, { payload }) => payload
   },
-  action
-) {
-  switch (action.type) {
-    case INVALIDATE_SUBREDDIT:
-      return Object.assign({}, state, {
-        didInvalidate: true
-      });
-    case REQUEST_POSTS:
-      return Object.assign({}, state, {
-        isFetching: true,
-        didInvalidate: false
-      });
-    case RECEIVE_POSTS:
-      return Object.assign({}, state, {
-        isFetching: false,
-        didInvalidate: false,
-        items: action.posts,
-        lastUpdated: action.receivedAt
-      });
-    default:
-      return state;
-  }
-}
+  "reactjs"
+);
 
-function postsBySubreddit(state = {}, action) {
-  switch (action.type) {
-    case INVALIDATE_SUBREDDIT:
-    case RECEIVE_POSTS:
-    case REQUEST_POSTS:
-      return Object.assign({}, state, {
-        [action.subreddit]: posts(state[action.subreddit], action)
-      });
-    default:
-      return state;
-  }
-}
+const defaultSubredditState = {
+  isFetching: false,
+  didInvalidate: false,
+  items: []
+};
+
+const postsBySubreddit = handleActions(
+  {
+    [requestPosts]: (state, { payload }) => ({
+      ...state,
+      [payload]: {
+        ...defaultSubredditState,
+        isFetching: true
+      }
+    }),
+    [invalidateSubreddit]: (state, { payload }) => ({
+      ...state,
+      [payload]: {
+        ...defaultSubredditState,
+        didInvalidate: true
+      }
+    }),
+    [receivePosts]: (state, { payload: { subreddit, posts, receivedAt } }) => ({
+      ...state,
+      [subreddit]: {
+        ...defaultSubredditState,
+        items: posts,
+        lastUpdated: receivedAt
+      }
+    })
+  },
+  []
+);
 
 const rootReducer = combineReducers({
   postsBySubreddit,

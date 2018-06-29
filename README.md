@@ -18,6 +18,23 @@
         visibilityFilter
     });
     ```
+  - [Redux actions](https://github.com/redux-utilities/redux-actions)
+    - Create action (no mapper):   `createAction("SELECT_SUBREDDIT")` => `{ type: "SELECT_SUBREDDIT", payload: "frontend" };`
+    - Create action (with mapper): ```createAction("RECEIVE_POSTS",
+  (subreddit, json) => ({
+    subreddit,
+    posts: json.data.children.map(child => child.data),
+    receivedAt: Date.now()
+  })``` 
+  => `{ type: "RECEIVE_POSTS", payload: {subreddit: "frontend", posts: [....],  receivedAt:....}}`
+    - Reducer: ```
+handleActions(
+  {
+    [selectSubreddit /* <- action by reference here */]: (state, { payload }) => payload // param 2 is the action object, so destructure to get the payload value
+  },
+  "reactjs" /* <- default state */
+);```
+
 
 - Prettier:
   - Enable at editor.formatOnSave, cf [vscode extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
