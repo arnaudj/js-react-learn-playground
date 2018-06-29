@@ -23,28 +23,28 @@ const defaultSubredditState = {
 
 const postsBySubreddit = handleActions(
   {
-    [requestPosts]: (state, { payload }) =>
-      Object.assign({}, state, {
-        [payload]: {
-          ...defaultSubredditState,
-          isFetching: true
-        }
-      }),
-    [invalidateSubreddit]: (state, { payload }) =>
-      Object.assign({}, state, {
-        [payload]: {
-          ...defaultSubredditState,
-          didInvalidate: true
-        }
-      }),
-    [receivePosts]: (state, { payload: { subreddit, posts, receivedAt } }) =>
-      Object.assign({}, state, {
-        [subreddit]: {
-          ...defaultSubredditState,
-          items: posts,
-          lastUpdated: receivedAt
-        }
-      })
+    [requestPosts]: (state, { payload }) => ({
+      ...state,
+      [payload]: {
+        ...defaultSubredditState,
+        isFetching: true
+      }
+    }),
+    [invalidateSubreddit]: (state, { payload }) => ({
+      ...state,
+      [payload]: {
+        ...defaultSubredditState,
+        didInvalidate: true
+      }
+    }),
+    [receivePosts]: (state, { payload: { subreddit, posts, receivedAt } }) => ({
+      ...state,
+      [subreddit]: {
+        ...defaultSubredditState,
+        items: posts,
+        lastUpdated: receivedAt
+      }
+    })
   },
   []
 );
