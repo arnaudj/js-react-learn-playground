@@ -1,45 +1,29 @@
 import fetch from "cross-fetch";
-export const REQUEST_POSTS = "REQUEST_POSTS";
-export const RECEIVE_POSTS = "RECEIVE_POSTS";
-export const SELECT_SUBREDDIT = "SELECT_SUBREDDIT";
-export const INVALIDATE_SUBREDDIT = "INVALIDATE_SUBREDDIT";
 
-export function selectSubreddit(subreddit) {
-  return {
-    type: SELECT_SUBREDDIT,
-    subreddit
-  };
-}
+import { createAction } from "redux-actions";
 
-export function invalidateSubreddit(subreddit) {
-  return {
-    type: INVALIDATE_SUBREDDIT,
-    subreddit
-  };
-}
-
-function requestPosts(subreddit) {
-  return {
-    type: REQUEST_POSTS,
-    subreddit
-  };
-}
-
-function receivePosts(subreddit, json) {
-  return {
-    type: RECEIVE_POSTS,
+export const selectSubreddit = createAction("SELECT_SUBREDDIT");
+export const requestPosts = createAction("REQUEST_POSTS");
+export const receivePosts = createAction(
+  "RECEIVE_POSTS",
+  (subreddit, json) => ({
     subreddit,
     posts: json.data.children.map(child => child.data),
     receivedAt: Date.now()
-  };
-}
+  })
+);
+export const invalidateSubreddit = createAction("INVALIDATE_SUBREDDIT");
 
 function fetchPosts(subreddit) {
   return dispatch => {
-    dispatch(requestPosts(subreddit));
+    const action = requestPosts(subreddit);
+    dispatch(action);
     return fetch(`https://www.reddit.com/r/${subreddit}.json`)
       .then(response => response.json())
-      .then(json => dispatch(receivePosts(subreddit, json)));
+      .then(json => {
+        const newLocal = receivePosts(subreddit, json);
+        dispatch(newLocal);
+      });
   };
 }
 
