@@ -1,5 +1,6 @@
-# React notes
+# Notes
 
+## React
 - Setting state:
   - Prefer using previous state (state is updated async)
   - New state to be wrapped in (), otherwise JS will eval as function body with label (with no return keyword, thus no returned value)
@@ -8,6 +9,8 @@
               ticks: prevState.ticks + 1
           }));
   ```
+
+# Redux
 - Redux:
   - Pitfalls:
     - `connect()`: takes functions as parameter (state to props, dispatch to props)
@@ -35,13 +38,10 @@ handleActions(
   "reactjs" /* <- default state */
 );```
 
-
-- Prettier:
-  - Enable at editor.formatOnSave, cf [vscode extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-  - Remove unicode characters blocking format: replace to empty: `[^\x00-\x7f]`
-
-- ReactJS code snippets:
-  - [vscode extension](https://marketplace.visualstudio.com/items?itemName=xabikos.ReactSnippets)
+## Best practices
+- Organizing action types, action creators, reducers, selectors: 
+  - [Ducks](https://github.com/erikras/ducks-modular-redux)
+  - [Re-ducks](https://github.com/alexnm/re-ducks)
 
 # Examples
 ## React
@@ -50,8 +50,16 @@ handleActions(
 
 ## Redux
 - Redux Todo list [tutorial](https://github.com/reactjs/redux/blob/master/examples/todos): [code](src/todos)
-
 - Redux Reddit [tutorial](https://redux.js.org/advanced/example-reddit-api): [code](src/reddit)
+
+
+# Extensions
+- Prettier:
+  - Enable at editor.formatOnSave, cf [vscode extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+  - Remove unicode characters blocking format: replace to empty: `[^\x00-\x7f]`
+
+- ReactJS code snippets:
+  - [vscode extension](https://marketplace.visualstudio.com/items?itemName=xabikos.ReactSnippets)
 
 # Misc
 - Doc for [Create React App](create-react-app.md)
