@@ -37,6 +37,9 @@ handleActions(
   },
   "reactjs" /* <- default state */
 );```
+  - Asynchronous actions: 
+    - [Redux thunk](https://github.com/reduxjs/redux-thunk)
+    - [Redux saga](https://github.com/redux-saga/redux-saga)
 
 ## Best practices
 - Organizing action types, action creators, reducers, selectors: 
