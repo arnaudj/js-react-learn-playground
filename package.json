@@ -23,6 +23,7 @@
     "eject": "react-scripts eject"
   },
   "devDependencies": {
-    "prettier": "1.13.6"
+    "prettier": "1.13.6",
+    "react-router-dom": "^4.3.1"
   }
 }

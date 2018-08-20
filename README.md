@@ -38,6 +38,9 @@ handleActions(
   "reactjs" /* <- default state */
 );```
 
+# React router
+  - katas: [code](src/katas/react-router/)
+
 ## Best practices
 - Organizing action types, action creators, reducers, selectors: 
   - [Ducks](https://github.com/erikras/ducks-modular-redux)
