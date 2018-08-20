@@ -1,5 +1,4 @@
 import ReactDOM from "react-dom";
-
 import React from "react";
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 
@@ -7,7 +6,12 @@ const store = {
   stories: [
     { id: 1000, title: "A story", author: "john" },
     { id: 1001, title: "Another story", author: "jane" }
-  ]
+  ],
+  comments: [{ id: 5000, storyId: 1000, comment: "A comment", author: "jake" }],
+
+  getComments: function(storyId) {
+    return this.comments.filter(comment => comment.storyId === Number(storyId)); // workaround router param is string...
+  }
 };
 
 const Home = () => (
@@ -16,22 +20,55 @@ const Home = () => (
   </div>
 );
 
-const Story = ({ match }) => (
-  <div>
-    <h3>{match.params.topicId}</h3>
-  </div>
-);
+class Story extends React.Component {
+  render() {
+    const {
+      store,
+      match: {
+        params: { storyId }
+      }
+    } = this.props;
+    return (
+      <div>
+        <h3>Reading story {storyId}</h3>
+        <div>
+          Story comments:
+          {store.getComments(storyId).map(comment => (
+            <div>
+              - {comment.author}: {comment.comment}
+              <br />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+}
 
-const Stories = ({ store: { stories } }) => (
+const StoriesList = ({ match, store }) => (
   <div>
     <h2>Stories</h2>
     <div>
-      {stories.map(story => (
+      {store.stories.map(story => (
         <div>
-          <Link to={`story/${story.id}`}>{story.title}</Link>
+          <Link to={`${match.url}/${story.id}`}>{story.title}</Link>
         </div>
       ))}
     </div>
+  </div>
+);
+
+const Stories = ({ match, store }) => (
+  <div>
+    <Route
+      exact
+      path={`${match.url}/`}
+      render={props => <StoriesList {...props} store={store} />}
+    />
+    <Route
+      path={`${match.url}/:storyId`}
+      render={props => <Story {...props} store={store} />}
+    />
   </div>
 );
 
