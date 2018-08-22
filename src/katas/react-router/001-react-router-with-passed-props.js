@@ -11,6 +11,8 @@ React:
 Router: 
 - No props forwarding, use render instead - https://github.com/ReactTraining/react-router/blob/master/packages/react-router/docs/api/Route.md#render-func, https://github.com/ReactTraining/react-router/blob/master/packages/react-router/modules/Route.js#L120
 - Number(): router parameters are strings, need to be cast to int everywhere we expect a number (model)
+
+- Context API: not accessible from lifecycle methods, has to be passed by parent via props (try: https://github.com/SunHuawei/with-context)
 */
 
 const _apiGetComments = storyId => {
@@ -89,11 +91,11 @@ class Story extends React.Component {
           Story comments:<br />
           {storyComments.length > 0
             ? storyComments.map(comment => (
-                <div key={comment.id}>
-                  - {comment.author}: {comment.comment}
-                  <br />
-                </div>
-              ))
+              <div key={comment.id}>
+                - {comment.author}: {comment.comment}
+                <br />
+              </div>
+            ))
             : "No comment"}
         </div>
       </div>
@@ -114,21 +116,31 @@ const StoriesList = ({ baseUrl, stories }) => (
   </div>
 );
 
-const Stories = ({ match: { url }, stories, commentsHelpers }) => (
+const Stories = ({ match: { url }, stories }) => (
   <div>
-    <Route
-      exact
-      path={`${url}/`}
-      render={props => <StoriesList baseUrl={url} stories={stories} />}
-    />
-    <Route
-      path={`${url}/:storyId`}
-      render={props => (
-        <Story {...props} stories={stories} commentsHelpers={commentsHelpers} />
-      )}
-    />
+    <CommentsContext.Consumer>
+      {
+        commentsContext => (
+          <div>
+            <Route
+              exact
+              path={`${url}/`}
+              render={props => <StoriesList baseUrl={url} stories={stories} />}
+            />
+            <Route
+              path={`${url}/:storyId`}
+              render={props => <Story {...props} stories={stories} commentsHelpers={commentsContext} />}
+            />
+          </div>)
+      }
+    </CommentsContext.Consumer>
   </div>
 );
+
+const CommentsContext = React.createContext({
+  getComments: undefined,
+  addComments: undefined
+});
 
 class BasicExample extends React.Component {
   constructor(props) {
@@ -167,30 +179,31 @@ class BasicExample extends React.Component {
 
   render() {
     return (
-      <Router>
-        <div>
-          <Link to="/">Home</Link>
-          <br />
-          <Link to="/stories">Stories</Link>
-          <hr />
+      <CommentsContext.Provider value={{
+        get: this.getComments,
+        add: this.addComments
+      }}>
+        <Router>
+          <div>
+            <Link to="/">Home</Link>
+            <br />
+            <Link to="/stories">Stories</Link>
+            <hr />
 
-          <Route exact path="/" component={Home} />
+            <Route exact path="/" component={Home} />
 
-          <Route
-            path="/stories"
-            render={props => (
-              <Stories
-                {...props}
-                stories={this.state.stories}
-                commentsHelpers={{
-                  get: this.getComments,
-                  add: this.addComments
-                }}
-              />
-            )}
-          />
-        </div>
-      </Router>
+            <Route
+              path="/stories"
+              render={props => (
+                <Stories
+                  {...props}
+                  stories={this.state.stories}
+                />
+              )}
+            />
+          </div>
+        </Router>
+      </CommentsContext.Provider>
     );
   }
 }
