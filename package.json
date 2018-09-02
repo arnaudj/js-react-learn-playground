@@ -4,6 +4,8 @@
   "private": true,
   "dependencies": {
     "cross-fetch": "^2.2.1",
+    "mobx": "^5.1.0",
+    "mobx-react": "^5.2.5",
     "npm": "^6.1.0",
     "prop-types": "^15.6.1",
     "react": "^16.4.2",
@@ -23,6 +25,7 @@
     "eject": "react-scripts eject"
   },
   "devDependencies": {
+    "mobx-react-devtools": "^6.0.3",
     "prettier": "1.13.6",
     "react-router-dom": "^4.3.1"
   }
