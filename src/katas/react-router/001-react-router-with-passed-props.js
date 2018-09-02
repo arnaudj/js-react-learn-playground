@@ -1,6 +1,7 @@
 import ReactDOM from "react-dom";
 import React from "react";
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
+import { apiGetComments } from "./api";
 
 /*
 = Pitfalls:
@@ -14,32 +15,6 @@ Router:
 
 - Context API: not accessible from lifecycle methods, has to be passed by parent via props (try: https://github.com/SunHuawei/with-context)
 */
-
-const _apiGetComments = storyId => {
-  // should be in API module
-  return new Promise((resolve, _reject) => {
-    setTimeout(resolve, 1000, [
-      {
-        id: 5010,
-        storyId: storyId,
-        comment: "A comment loaded from API",
-        author: "hal"
-      },
-      {
-        id: 5011,
-        storyId: storyId,
-        comment: "Another 2nd comment loaded from API",
-        author: "9000"
-      },
-      {
-        id: 5012,
-        storyId: storyId,
-        comment: "Another 3rd comment loaded from API",
-        author: "hal"
-      }
-    ]);
-  });
-};
 
 const Home = () => (
   <div>
@@ -63,7 +38,7 @@ class Story extends React.Component {
         theStoryId,
         " querying API..."
       );
-      _apiGetComments(theStoryId).then(data => {
+      apiGetComments(theStoryId).then(data => {
         commentsHelpers.add(theStoryId, data);
       });
     }
@@ -91,11 +66,11 @@ class Story extends React.Component {
           Story comments:<br />
           {storyComments.length > 0
             ? storyComments.map(comment => (
-              <div key={comment.id}>
-                - {comment.author}: {comment.comment}
-                <br />
-              </div>
-            ))
+                <div key={comment.id}>
+                  - {comment.author}: {comment.comment}
+                  <br />
+                </div>
+              ))
             : "No comment"}
         </div>
       </div>
@@ -119,20 +94,25 @@ const StoriesList = ({ baseUrl, stories }) => (
 const Stories = ({ match: { url }, stories }) => (
   <div>
     <CommentsContext.Consumer>
-      {
-        commentsContext => (
-          <div>
-            <Route
-              exact
-              path={`${url}/`}
-              render={props => <StoriesList baseUrl={url} stories={stories} />}
-            />
-            <Route
-              path={`${url}/:storyId`}
-              render={props => <Story {...props} stories={stories} commentsHelpers={commentsContext} />}
-            />
-          </div>)
-      }
+      {commentsContext => (
+        <div>
+          <Route
+            exact
+            path={`${url}/`}
+            render={props => <StoriesList baseUrl={url} stories={stories} />}
+          />
+          <Route
+            path={`${url}/:storyId`}
+            render={props => (
+              <Story
+                {...props}
+                stories={stories}
+                commentsHelpers={commentsContext}
+              />
+            )}
+          />
+        </div>
+      )}
     </CommentsContext.Consumer>
   </div>
 );
@@ -179,10 +159,12 @@ class BasicExample extends React.Component {
 
   render() {
     return (
-      <CommentsContext.Provider value={{
-        get: this.getComments,
-        add: this.addComments
-      }}>
+      <CommentsContext.Provider
+        value={{
+          get: this.getComments,
+          add: this.addComments
+        }}
+      >
         <Router>
           <div>
             <Link to="/">Home</Link>
@@ -195,10 +177,7 @@ class BasicExample extends React.Component {
             <Route
               path="/stories"
               render={props => (
-                <Stories
-                  {...props}
-                  stories={this.state.stories}
-                />
+                <Stories {...props} stories={this.state.stories} />
               )}
             />
           </div>
