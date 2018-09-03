@@ -1,20 +1,17 @@
 import ReactDOM from "react-dom";
 import React from "react";
 import { observable, decorate, computed, action } from "mobx";
-import { observer } from "mobx-react";
+import { observer, inject, Provider } from "mobx-react";
 import DevTools from "mobx-react-devtools";
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import { apiGetComments } from "./api";
 
 /*
 = Notes:
-Store is passed via props
 Observing active story comments is hackish (set by ID, then observed via computed property)
 Decorators not available without babel (needs to eject create react app, or change create react app scripts to a fork)
 
 = To improve:
-- use @Inject to retrieve store (needs React Provider and 
-   annotation is unsupported with react create app, cf https://github.com/mobxjs/mobx-react#inject-as-function)
 - wrt active story comments: loading is triggered by Story.componentWillMount, but it should
  be triggered by a model action instead
 - drop react-router in favor of store centric logic: https://hackernoon.com/how-to-decouple-state-and-ui-a-k-a-you-dont-need-componentwillmount-cc90b787aa37
@@ -26,66 +23,69 @@ const Home = () => (
   </div>
 );
 
-const Story = observer(
-  // observer needed for render() refresh, since references observable - https://github.com/mobxjs/mobx/issues/101#issuecomment-189818379
-  class Story extends React.Component {
-    componentWillMount() {
-      const {
-        store,
-        match: {
-          params: { storyId }
-        }
-      } = this.props;
-      const theStoryId = Number(storyId);
+const Story = inject("store")(
+  observer(
+    // observer needed for render() refresh, since references observable - https://github.com/mobxjs/mobx/issues/101#issuecomment-189818379
+    class Story extends React.Component {
+      componentWillMount() {
+        const {
+          store,
+          match: {
+            params: { storyId }
+          }
+        } = this.props;
+        const theStoryId = Number(storyId);
 
-      store.setActiveStoryId(theStoryId);
-      if (!store.activeStoryComments.length) {
-        console.log(
-          "No comments found for story ",
-          theStoryId,
-          " querying API..."
+        store.setActiveStoryId(theStoryId);
+        if (!store.activeStoryComments.length) {
+          console.log(
+            "No comments found for story ",
+            theStoryId,
+            " querying API..."
+          );
+          apiGetComments(theStoryId).then(data => {
+            store.addActiveStoryComments(data);
+          });
+        }
+      }
+
+      render() {
+        const {
+          store,
+          match: {
+            params: { storyId }
+          }
+        } = this.props;
+        const storyComments = store.activeStoryComments;
+        return (
+          <div>
+            <h3>
+              Reading story {storyId}:{" "}
+              {
+                store.stories.filter(story => story.id === Number(storyId))[0]
+                  .title
+              }
+              <br />
+            </h3>
+            <div>
+              Story comments:<br />
+              {storyComments.length > 0
+                ? storyComments.map(comment => (
+                    <div key={comment.id}>
+                      - {comment.author}: {comment.comment}
+                      <br />
+                    </div>
+                  ))
+                : "No comment"}
+            </div>
+          </div>
         );
-        apiGetComments(theStoryId).then(data => {
-          store.addActiveStoryComments(data);
-        });
       }
     }
-    render() {
-      const {
-        store,
-        match: {
-          params: { storyId }
-        }
-      } = this.props;
-      const storyComments = store.activeStoryComments;
-      return (
-        <div>
-          <h3>
-            Reading story {storyId}:{" "}
-            {
-              store.stories.filter(story => story.id === Number(storyId))[0]
-                .title
-            }
-            <br />
-          </h3>
-          <div>
-            Story comments:<br />
-            {storyComments.length > 0
-              ? storyComments.map(comment => (
-                  <div key={comment.id}>
-                    - {comment.author}: {comment.comment}
-                    <br />
-                  </div>
-                ))
-              : "No comment"}
-          </div>
-        </div>
-      );
-    }
-  }
+  )
 );
 
-const StoriesList = ({ baseUrl, stories }) => (
+const StoriesList = inject("store")(({ baseUrl, store: { stories } }) => (
   <div>
     <h2>Stories</h2>
     <div>
@@ -96,21 +96,16 @@ const StoriesList = ({ baseUrl, stories }) => (
       ))}
     </div>
   </div>
-);
+));
 
-const Stories = ({ match: { url }, store }) => (
+const Stories = ({ match: { url } }) => (
   <div>
     <Route
       exact
       path={`${url}/`}
-      render={props => (
-        <StoriesList baseUrl={url} {...props} stories={store.stories} />
-      )}
+      render={props => <StoriesList baseUrl={url} {...props} />}
     />
-    <Route
-      path={`${url}/:storyId`}
-      render={props => <Story {...props} store={store} />}
-    />
+    <Route path={`${url}/:storyId`} render={props => <Story {...props} />} />
   </div>
 );
 
@@ -170,22 +165,21 @@ class BasicExample extends React.Component {
   }
   render() {
     return (
-      <div>
-        <Router>
-          <div>
-            <Link to="/">Home</Link>
-            <br />
-            <Link to="/stories">Stories</Link>
-            <hr />
-            <Route exact path="/" component={Home} />
-            <Route
-              path="/stories"
-              render={props => <Stories {...props} store={this.state.store} />}
-            />
-          </div>
-        </Router>
-        <DevTools />
-      </div>
+      <Provider store={this.state.store}>
+        <React.Fragment>
+          <Router>
+            <div>
+              <Link to="/">Home</Link>
+              <br />
+              <Link to="/stories">Stories</Link>
+              <hr />
+              <Route exact path="/" component={Home} />
+              <Route path="/stories" render={props => <Stories {...props} />} />
+            </div>
+          </Router>
+          <DevTools />
+        </React.Fragment>
+      </Provider>
     );
   }
 }
