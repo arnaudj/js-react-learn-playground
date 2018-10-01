@@ -6,7 +6,8 @@ import {
   computed,
   action,
   configure,
-  runInAction
+  runInAction,
+  reaction
 } from "mobx";
 import { observer, inject, Provider } from "mobx-react";
 import DevTools from "mobx-react-devtools";
@@ -121,12 +122,11 @@ class Store {
   comments;
   isFetching;
 
-  activeStoryId = -1;
+  activeStoryId;
   stories;
   comments;
 
   initStore() {
-    this.isFetching = false;
     this.stories = [
       { id: 1000, title: "A story", author: "john" },
       { id: 1001, title: "Another story", author: "jane" }
@@ -134,23 +134,35 @@ class Store {
     this.comments = [
       { id: 5000, storyId: 1000, comment: "A comment", author: "jake" }
     ];
+    this.isFetching = false;
+    this.activeStoryId = -1;
+
+    reaction(
+      () => this.activeStoryId,
+      activeStoryId => {
+        console.log(`Story changed to ${activeStoryId}`);
+
+        if (activeStoryId <= 0) return;
+        if (this.activeStoryComments.length) return;
+        console.log(
+          `No comments found for story ${activeStoryId}, querying API...`
+        );
+        this.isFetching = true;
+
+        apiGetComments(activeStoryId).then(data => {
+          runInAction("apiGetCommentsSuccess", () => {
+            this._addActiveStoryComments(data);
+            this.isFetching = false;
+          });
+        });
+      },
+      { name: "activeStoryIdWatcher" }
+    );
   }
 
   actionUserNavigatesToStory(id) {
     const theStoryId = Number(id);
     this._setActiveStoryId(theStoryId);
-
-    if (!store.activeStoryComments.length) {
-      console.log(`No comments found for story ${theStoryId}, querying API...`);
-      this.isFetching = true;
-
-      apiGetComments(theStoryId).then(data => {
-        runInAction("apiGetCommentsSuccess", () => {
-          this._addActiveStoryComments(data);
-          this.isFetching = false;
-        });
-      });
-    }
   }
 
   get activeStoryComments() {
@@ -190,6 +202,7 @@ class Store {
 decorate(Store, {
   stories: observable,
   comments: observable,
+  activeStoryId: observable,
   isFetching: observable,
   initStore: action.bound,
   actionUserNavigatesToStory: action.bound,
