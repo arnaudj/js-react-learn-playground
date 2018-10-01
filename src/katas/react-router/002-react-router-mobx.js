@@ -1,6 +1,13 @@
 import ReactDOM from "react-dom";
 import React from "react";
-import { observable, decorate, computed, action } from "mobx";
+import {
+  observable,
+  decorate,
+  computed,
+  action,
+  configure,
+  runInAction
+} from "mobx";
 import { observer, inject, Provider } from "mobx-react";
 import DevTools from "mobx-react-devtools";
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
@@ -16,6 +23,8 @@ Decorators not available without babel (needs to eject create react app, or chan
  be triggered by a model action instead
 - drop react-router in favor of store centric logic: https://hackernoon.com/how-to-decouple-state-and-ui-a-k-a-you-dont-need-componentwillmount-cc90b787aa37
 */
+
+configure({ enforceActions: "always" });
 
 const Home = () => (
   <div>
@@ -35,20 +44,8 @@ const Story = inject("store")(
             params: { storyId }
           }
         } = this.props;
-        const theStoryId = Number(storyId);
+        store.actionUserNavigatesToStory(storyId);
         //console.log(`story#${storyId}: componentWillMount()`);
-
-        store.setActiveStoryId(theStoryId);
-        if (!store.activeStoryComments.length) {
-          console.log(
-            "No comments found for story ",
-            theStoryId,
-            " querying API..."
-          );
-          apiGetComments(theStoryId).then(data => {
-            store.addActiveStoryComments(data);
-          });
-        }
       }
 
       // lifecycle: everytime navigated away by router
@@ -66,23 +63,28 @@ const Story = inject("store")(
 
         console.log(`story#${storyId}: render()`);
         const storyComments = store.activeStoryComments;
+        const isFetching = store.isFetching;
         return (
           <div>
             <h3>
               Reading story {storyId}: {store.activeStoryTitle}
               <br />
             </h3>
-            <div>
-              Story comments:<br />
-              {storyComments.length > 0
-                ? storyComments.map(comment => (
-                    <div key={comment.id}>
-                      - {comment.author}: {comment.comment}
-                      <br />
-                    </div>
-                  ))
-                : "No comment"}
-            </div>
+            {isFetching ? (
+              <span>Loading...</span>
+            ) : (
+              <div>
+                Story comments:<br />
+                {storyComments.length > 0
+                  ? storyComments.map(comment => (
+                      <div key={comment.id}>
+                        - {comment.author}: {comment.comment}
+                        <br />
+                      </div>
+                    ))
+                  : "No comment"}
+              </div>
+            )}
           </div>
         );
       }
@@ -115,20 +117,40 @@ const Stories = ({ match: { url } }) => (
 );
 
 class Store {
+  stories;
+  comments;
+  isFetching;
+
   activeStoryId = -1;
+  stories;
+  comments;
 
-  stories = [
-    { id: 1000, title: "A story", author: "john" },
-    { id: 1001, title: "Another story", author: "jane" }
-  ];
+  initStore() {
+    this.isFetching = false;
+    this.stories = [
+      { id: 1000, title: "A story", author: "john" },
+      { id: 1001, title: "Another story", author: "jane" }
+    ];
+    this.comments = [
+      { id: 5000, storyId: 1000, comment: "A comment", author: "jake" }
+    ];
+  }
 
-  comments = [
-    { id: 5000, storyId: 1000, comment: "A comment", author: "jake" }
-  ];
+  actionUserNavigatesToStory(id) {
+    const theStoryId = Number(id);
+    this._setActiveStoryId(theStoryId);
 
-  setActiveStoryId(id) {
-    this.activeStoryId = Number(id);
-    console.log("setActiveStoryId", this.activeStoryId);
+    if (!store.activeStoryComments.length) {
+      console.log(`No comments found for story ${theStoryId}, querying API...`);
+      this.isFetching = true;
+
+      apiGetComments(theStoryId).then(data => {
+        runInAction("apiGetCommentsSuccess", () => {
+          this._addActiveStoryComments(data);
+          this.isFetching = false;
+        });
+      });
+    }
   }
 
   get activeStoryComments() {
@@ -149,7 +171,12 @@ class Store {
     return hits.length ? hits[0].title : "";
   }
 
-  addActiveStoryComments(comments) {
+  _setActiveStoryId(id) {
+    this.activeStoryId = Number(id);
+    console.log("setActiveStoryId", this.activeStoryId);
+  }
+
+  _addActiveStoryComments(comments) {
     console.log(
       "addActiveStoryComments: ",
       this.activeStoryId,
@@ -163,8 +190,9 @@ class Store {
 decorate(Store, {
   stories: observable,
   comments: observable,
-  addActiveStoryComments: action.bound, // bind this
-  setActiveStoryId: action.bound,
+  isFetching: observable,
+  initStore: action.bound,
+  actionUserNavigatesToStory: action.bound,
   activeStoryComments: computed,
   activeStoryTitle: computed
 });
@@ -196,6 +224,7 @@ class BasicExample extends React.Component {
 }
 
 const store = new Store();
+store.initStore();
 
 ReactDOM.render(
   <BasicExample store={store} />,
