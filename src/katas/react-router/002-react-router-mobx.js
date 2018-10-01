@@ -27,6 +27,7 @@ const Story = inject("store")(
   observer(
     // observer needed for render() refresh, since references observable - https://github.com/mobxjs/mobx/issues/101#issuecomment-189818379
     class Story extends React.Component {
+      // lifecycle: everytime displayed by router (even on visit again)
       componentWillMount() {
         const {
           store,
@@ -35,6 +36,7 @@ const Story = inject("store")(
           }
         } = this.props;
         const theStoryId = Number(storyId);
+        //console.log(`story#${storyId}: componentWillMount()`);
 
         store.setActiveStoryId(theStoryId);
         if (!store.activeStoryComments.length) {
@@ -49,6 +51,11 @@ const Story = inject("store")(
         }
       }
 
+      // lifecycle: everytime navigated away by router
+      componentWillUnmount() {
+        //console.log(`story#${this.props.match.params.storyId}: componentWillUnmount()`);
+      }
+
       render() {
         const {
           store,
@@ -56,15 +63,13 @@ const Story = inject("store")(
             params: { storyId }
           }
         } = this.props;
+
+        console.log(`story#${storyId}: render()`);
         const storyComments = store.activeStoryComments;
         return (
           <div>
             <h3>
-              Reading story {storyId}:{" "}
-              {
-                store.stories.filter(story => story.id === Number(storyId))[0]
-                  .title
-              }
+              Reading story {storyId}: {store.activeStoryTitle}
               <br />
             </h3>
             <div>
@@ -122,7 +127,7 @@ class Store {
   ];
 
   setActiveStoryId(id) {
-    this.activeStoryId = id;
+    this.activeStoryId = Number(id);
     console.log("setActiveStoryId", this.activeStoryId);
   }
 
@@ -137,6 +142,11 @@ class Store {
       JSON.stringify(ret)
     );
     return ret;
+  }
+
+  get activeStoryTitle() {
+    const hits = this.stories.filter(story => story.id === this.activeStoryId);
+    return hits.length ? hits[0].title : "";
   }
 
   addActiveStoryComments(comments) {
@@ -155,7 +165,8 @@ decorate(Store, {
   comments: observable,
   addActiveStoryComments: action.bound, // bind this
   setActiveStoryId: action.bound,
-  activeStoryComments: computed
+  activeStoryComments: computed,
+  activeStoryTitle: computed
 });
 
 class BasicExample extends React.Component {
