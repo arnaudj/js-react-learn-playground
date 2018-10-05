@@ -3,11 +3,10 @@ import React from "react";
 import {
   observable,
   decorate,
-  computed,
   action,
   configure,
   runInAction,
-  reaction
+  autorun
 } from "mobx";
 import { observer, inject, Provider } from "mobx-react";
 import DevTools from "mobx-react-devtools";
@@ -16,12 +15,10 @@ import { apiGetComments } from "./api";
 
 /*
 = Notes:
-Observing active story comments is hackish (set by ID, then observed via computed property)
 Decorators not available without babel (needs to eject create react app, or change create react app scripts to a fork)
+When using a reaction/autorun: watched observable must have one of its properties accessed to register the reaction (and won't register if this access is done inside a runInaction within the reaction) - https://mobx.js.org/best/react.html#incorrect-use-an-observable-but-without-accessing-any-of-its-properties
 
 = To improve:
-- wrt active story comments: loading is triggered by Story.componentWillMount, but it should
- be triggered by a model action instead
 - drop react-router in favor of store centric logic: https://hackernoon.com/how-to-decouple-state-and-ui-a-k-a-you-dont-need-componentwillmount-cc90b787aa37
 */
 
@@ -39,20 +36,13 @@ const Story = inject("store")(
     class Story extends React.Component {
       // lifecycle: everytime displayed by router (even on visit again)
       componentWillMount() {
-        const {
-          store,
-          match: {
-            params: { storyId }
-          }
-        } = this.props;
-        store.actionUserNavigatesToStory(storyId);
-        //console.log(`story#${storyId}: componentWillMount()`);
+        this.props.store.actionUserNavigatesToStory(
+          this.props.match.params.storyId
+        );
       }
 
       // lifecycle: everytime navigated away by router
-      componentWillUnmount() {
-        //console.log(`story#${this.props.match.params.storyId}: componentWillUnmount()`);
-      }
+      componentWillUnmount() {}
 
       render() {
         const {
@@ -63,12 +53,15 @@ const Story = inject("store")(
         } = this.props;
 
         console.log(`story#${storyId}: render()`);
-        const storyComments = store.activeStoryComments;
+
+        const theStoryId = Number(storyId);
+
+        const storyComments = store.storyComments(theStoryId);
         const isFetching = store.isFetching;
         return (
           <div>
             <h3>
-              Reading story {storyId}: {store.activeStoryTitle}
+              Reading story {storyId}: {store.story(theStoryId).title}
               <br />
             </h3>
             {isFetching ? (
@@ -121,10 +114,14 @@ class Store {
   stories;
   comments;
   isFetching;
+  fetchList;
 
-  activeStoryId;
-  stories;
-  comments;
+  _setIsFetching(val) {
+    this.isFetching = val;
+  }
+  _shiftFetchList(val) {
+    return this.fetchList.shift();
+  }
 
   initStore() {
     this.stories = new Map([
@@ -135,62 +132,47 @@ class Store {
       { id: 5000, storyId: 1000, comment: "A comment", author: "jake" }
     ];
     this.isFetching = false;
-    this.activeStoryId = -1;
+    this.fetchList = [];
 
-    reaction(
-      () => this.activeStoryId,
-      activeStoryId => {
-        console.log(`Story changed to ${activeStoryId}`);
+    autorun(() => {
+      if (this.fetchList.length === 0) return; // touch fetchList property to register reaction
+      const storyId = this._shiftFetchList();
 
-        if (activeStoryId <= 0) return;
-        if (this.activeStoryComments.length) return;
-        console.log(
-          `No comments found for story ${activeStoryId}, querying API...`
-        );
-        this.isFetching = true;
+      if (this.storyComments(storyId).length) {
+        console.log(`Fetch for ${storyId}: cache hit`);
+        return;
+      }
+      console.log(`Fetch for ${storyId}: querying API...`);
+      this._setIsFetching(true);
 
-        apiGetComments(activeStoryId).then(data => {
-          runInAction("apiGetCommentsSuccess", () => {
-            this._addActiveStoryComments(data);
-            this.isFetching = false;
-          });
+      apiGetComments(storyId).then(data => {
+        runInAction("apiGetCommentsSuccess", () => {
+          this._addStoryComments(storyId, data);
+          this._setIsFetching(false);
         });
-      },
-      { name: "activeStoryIdWatcher" }
-    );
+      });
+    });
   }
 
   actionUserNavigatesToStory(id) {
-    const theStoryId = Number(id);
-    this._setActiveStoryId(theStoryId);
-  }
-
-  get activeStoryComments() {
-    const ret = this.comments.filter(
-      comment => comment.storyId === this.activeStoryId
-    );
+    this.fetchList.push(Number(id));
     console.log(
-      "activeStoryComments: ",
-      this.activeStoryId,
-      " ",
-      JSON.stringify(ret)
+      "actionUserNavigatesToStory(): after: fetchList: " + this.fetchList
     );
-    return ret;
   }
 
-  get activeStoryTitle() {
-    return this.stories.get(this.activeStoryId).title;
+  storyComments(storyId) {
+    return this.comments.filter(comment => comment.storyId === storyId);
   }
 
-  _setActiveStoryId(id) {
-    this.activeStoryId = Number(id);
-    console.log("setActiveStoryId", this.activeStoryId);
+  story(storyId) {
+    return this.stories.get(storyId);
   }
 
-  _addActiveStoryComments(comments) {
+  _addStoryComments(storyId, comments) {
     console.log(
       "addActiveStoryComments: ",
-      this.activeStoryId,
+      storyId,
       " ",
       JSON.stringify(comments)
     );
@@ -201,12 +183,13 @@ class Store {
 decorate(Store, {
   stories: observable,
   comments: observable,
-  activeStoryId: observable,
   isFetching: observable,
+  fetchList: observable,
   initStore: action.bound,
   actionUserNavigatesToStory: action.bound,
-  activeStoryComments: computed,
-  activeStoryTitle: computed
+  _addStoryComments: action.bound,
+  _setIsFetching: action.bound,
+  _shiftFetchList: action.bound
 });
 
 class BasicExample extends React.Component {
