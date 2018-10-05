@@ -97,7 +97,7 @@ const StoriesList = inject("store")(({ baseUrl, store: { stories } }) => (
   <div>
     <h2>Stories</h2>
     <div>
-      {stories.map(story => (
+      {[...stories.values()].map(story => (
         <div key={story.id}>
           <Link to={`${baseUrl}/${story.id}`}>{story.title}</Link>
         </div>
@@ -127,10 +127,10 @@ class Store {
   comments;
 
   initStore() {
-    this.stories = [
-      { id: 1000, title: "A story", author: "john" },
-      { id: 1001, title: "Another story", author: "jane" }
-    ];
+    this.stories = new Map([
+      [1000, { id: 1000, title: "A story", author: "john" }],
+      [1001, { id: 1001, title: "Another story", author: "jane" }]
+    ]);
     this.comments = [
       { id: 5000, storyId: 1000, comment: "A comment", author: "jake" }
     ];
@@ -179,8 +179,7 @@ class Store {
   }
 
   get activeStoryTitle() {
-    const hits = this.stories.filter(story => story.id === this.activeStoryId);
-    return hits.length ? hits[0].title : "";
+    return this.stories.get(this.activeStoryId).title;
   }
 
   _setActiveStoryId(id) {
