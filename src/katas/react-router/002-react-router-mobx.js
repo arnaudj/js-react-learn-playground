@@ -57,7 +57,7 @@ const Story = inject("store")(
         const theStoryId = Number(storyId);
 
         const storyComments = store.storyComments(theStoryId);
-        const isFetching = store.isFetching;
+        const isFetching = store.story(theStoryId).isFetching;
         return (
           <div>
             <h3>
@@ -113,12 +113,8 @@ const Stories = ({ match: { url } }) => (
 class Store {
   stories;
   comments;
-  isFetching;
   fetchList;
 
-  _setIsFetching(val) {
-    this.isFetching = val;
-  }
   _shiftFetchList(val) {
     return this.fetchList.shift();
   }
@@ -131,7 +127,6 @@ class Store {
     this.comments = [
       { id: 5000, storyId: 1000, comment: "A comment", author: "jake" }
     ];
-    this.isFetching = false;
     this.fetchList = [];
 
     autorun(() => {
@@ -142,13 +137,18 @@ class Store {
         console.log(`Fetch for ${storyId}: cache hit`);
         return;
       }
-      console.log(`Fetch for ${storyId}: querying API...`);
-      this._setIsFetching(true);
+      const story = this.story(storyId);
+      if (story.isFetching) {
+        console.log(`Fetch for ${storyId}: already fetching`);
+        return;
+      }
 
+      console.log(`Fetch for ${storyId}: querying API...`);
+      runInAction(() => (story.isFetching = true));
       apiGetComments(storyId).then(data => {
         runInAction("apiGetCommentsSuccess", () => {
           this._addStoryComments(storyId, data);
-          this._setIsFetching(false);
+          story.isFetching = false;
         });
       });
     });
@@ -188,7 +188,6 @@ decorate(Store, {
   initStore: action.bound,
   actionUserNavigatesToStory: action.bound,
   _addStoryComments: action.bound,
-  _setIsFetching: action.bound,
   _shiftFetchList: action.bound
 });
 
