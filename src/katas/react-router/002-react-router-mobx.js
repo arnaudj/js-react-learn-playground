@@ -2,7 +2,6 @@ import ReactDOM from "react-dom";
 import React from "react";
 import {
   observable,
-  decorate,
   action,
   configure,
   runInAction,
@@ -15,8 +14,8 @@ import { apiGetComments } from "./api";
 
 /*
 = Notes:
-Decorators not available without babel (needs to eject create react app, or change create react app scripts to a fork)
 When using a reaction/autorun: watched observable must have one of its properties accessed to register the reaction (and won't register if this access is done inside a runInaction within the reaction) - https://mobx.js.org/best/react.html#incorrect-use-an-observable-but-without-accessing-any-of-its-properties
+Decorators: support in create-react-app via via react-app-rewired. Mobx doc: https://mobx.js.org/refguide/modifiers.html
 
 = To improve:
 - drop react-router in favor of store centric logic: https://hackernoon.com/how-to-decouple-state-and-ui-a-k-a-you-dont-need-componentwillmount-cc90b787aa37
@@ -30,61 +29,62 @@ const Home = () => (
   </div>
 );
 
-const Story = inject("store")(
-  observer(
-    // observer needed for render() refresh, since references observable - https://github.com/mobxjs/mobx/issues/101#issuecomment-189818379
-    class Story extends React.Component {
-      // lifecycle: everytime displayed by router (even on visit again)
-      componentWillMount() {
-        this.props.store.actionUserNavigatesToStory(
-          this.props.match.params.storyId
-        );
+@inject("store")
+@observer // observer needed for render() refresh, since references observable - https://github.com/mobxjs/mobx/issues/101#issuecomment-189818379
+class Story extends React.Component {
+  // lifecycle: everytime displayed by router (even on visit again)
+  componentWillMount() {
+    const {
+      store,
+      match: {
+        params: { storyId }
       }
+    } = this.props;
+    store.actionUserNavigatesToStory(storyId);
+  }
 
-      // lifecycle: everytime navigated away by router
-      componentWillUnmount() {}
+  // lifecycle: everytime navigated away by router
+  componentWillUnmount() { }
 
-      render() {
-        const {
-          store,
-          match: {
-            params: { storyId }
-          }
-        } = this.props;
-
-        console.log(`story#${storyId}: render()`);
-
-        const theStoryId = Number(storyId);
-
-        const storyComments = store.storyComments(theStoryId);
-        const isFetching = store.story(theStoryId).isFetching;
-        return (
-          <div>
-            <h3>
-              Reading story {storyId}: {store.story(theStoryId).title}
-              <br />
-            </h3>
-            {isFetching ? (
-              <span>Loading...</span>
-            ) : (
-              <div>
-                Story comments:<br />
-                {storyComments.length > 0
-                  ? storyComments.map(comment => (
-                      <div key={comment.id}>
-                        - {comment.author}: {comment.comment}
-                        <br />
-                      </div>
-                    ))
-                  : "No comment"}
-              </div>
-            )}
-          </div>
-        );
+  render() {
+    const {
+      store,
+      match: {
+        params: { storyId }
       }
-    }
-  )
-);
+    } = this.props;
+
+    console.log(`story#${storyId}: render()`);
+
+    const theStoryId = Number(storyId);
+
+    const storyComments = store.storyComments(theStoryId);
+    const isFetching = store.story(theStoryId).isFetching;
+    return (
+      <div>
+        <h3>
+          Reading story {storyId}: {store.story(theStoryId).title}
+          <br />
+        </h3>
+        {isFetching ? (
+          <span>Loading...</span>
+        ) : (
+            <div>
+              Story comments:<br />
+              {storyComments.length > 0
+                ? storyComments.map(comment => (
+                  <div key={comment.id}>
+                    - {comment.author}: {comment.comment}
+                    <br />
+                  </div>
+                ))
+                : "No comment"}
+            </div>
+          )}
+      </div>
+    );
+  }
+}
 
 const StoriesList = inject("store")(({ baseUrl, store: { stories } }) => (
   <div>
@@ -111,14 +111,18 @@ const Stories = ({ match: { url } }) => (
 );
 
 class Store {
-  stories;
-  comments;
-  fetchList;
+  @observable stories;
 
+  @observable comments;
+
+  @observable _fetchList;
+
+  @action.bound
   _shiftFetchList(val) {
-    return this.fetchList.shift();
+    return this._fetchList.shift();
   }
 
+  @action.bound
   initStore() {
     this.stories = new Map([
       [1000, { id: 1000, title: "A story", author: "john" }],
@@ -127,10 +131,10 @@ class Store {
     this.comments = [
       { id: 5000, storyId: 1000, comment: "A comment", author: "jake" }
     ];
-    this.fetchList = [];
+    this._fetchList = [];
 
     autorun(() => {
-      if (this.fetchList.length === 0) return; // touch fetchList property to register reaction
+      if (this._fetchList.length === 0) return; // touch fetchList property to register reaction
       const storyId = this._shiftFetchList();
 
       if (this.storyComments(storyId).length) {
@@ -154,10 +158,11 @@ class Store {
     });
   }
 
+  @action.bound
   actionUserNavigatesToStory(id) {
-    this.fetchList.push(Number(id));
+    this._fetchList.push(Number(id));
     console.log(
-      "actionUserNavigatesToStory(): after: fetchList: " + this.fetchList
+      "actionUserNavigatesToStory(): after: _fetchList: " + this._fetchList
     );
   }
 
@@ -169,6 +174,7 @@ class Store {
     return this.stories.get(storyId);
   }
 
+  @action.bound
   _addStoryComments(storyId, comments) {
     console.log(
       "addActiveStoryComments: ",
@@ -179,17 +185,6 @@ class Store {
     this.comments.push(...comments);
   }
 }
-// decorators not available without babel, use decorate - https://mobx.js.org/refguide/modifiers.html
-decorate(Store, {
-  stories: observable,
-  comments: observable,
-  isFetching: observable,
-  fetchList: observable,
-  initStore: action.bound,
-  actionUserNavigatesToStory: action.bound,
-  _addStoryComments: action.bound,
-  _shiftFetchList: action.bound
-});
 
 class BasicExample extends React.Component {
   constructor(props) {
