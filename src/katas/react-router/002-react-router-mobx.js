@@ -31,7 +31,7 @@ const Home = () => (
 
 @inject("store")
 @observer // observer needed for render() refresh, since references observable - https://github.com/mobxjs/mobx/issues/101#issuecomment-189818379
-class Story extends React.Component {
+class StoryComponent extends React.Component {
   // lifecycle: everytime displayed by router (even on visit again)
   componentWillMount() {
     const {
@@ -56,28 +56,26 @@ class Story extends React.Component {
 
     console.log(`story#${storyId}: render()`);
 
-    const theStoryId = Number(storyId);
-
-    const storyComments = store.storyComments(theStoryId);
-    const isFetching = store.story(theStoryId).isFetching;
+    const story = store.stories.get(Number(storyId));
+    const storyComments = story.comments;
+    const hasComments = storyComments.length; // hit array property now to register observer atom (since story.isFetching eq true at first run, checking comments length later after isFetching check is too late and wouldn't trigger a re-render otherwise)
     return (
       <div>
         <h3>
-          Reading story {storyId}: {store.story(theStoryId).title}
+          Reading story {storyId}: {story.title}
           <br />
         </h3>
-        {isFetching ? (
+        {story.isFetching ? (
           <span>Loading...</span>
         ) : (
             <div>
               Story comments:<br />
-              {storyComments.length > 0
-                ? storyComments.map(comment => (
-                  <div key={comment.id}>
-                    - {comment.author}: {comment.comment}
-                    <br />
-                  </div>
-                ))
+              {hasComments ? storyComments.map(comment => (
+                <div key={comment.id}>
+                  - {comment.author}: {comment.comment}
+                  <br />
+                </div>
+              ))
                 : "No comment"}
             </div>
           )}
@@ -106,42 +104,54 @@ const Stories = ({ match: { url } }) => (
       path={`${url}/`}
       render={props => <StoriesList baseUrl={url} {...props} />}
     />
-    <Route path={`${url}/:storyId`} render={props => <Story {...props} />} />
+    <Route path={`${url}/:storyId`} render={props => <StoryComponent {...props} />} />
   </div>
 );
 
-class Store {
-  @observable stories;
+class Comment {
+  id;
+  storyId;
+  text;
+  author;
 
-  @observable comments;
+  constructor(jsonSource) {
+    Object.assign(this, jsonSource); // Q&D assign from json
+  }
+}
 
-  @observable _fetchList;
+class Story {
 
-  @action.bound
-  _shiftFetchList(val) {
-    return this._fetchList.shift();
+  @observable id;
+  @observable title;
+  @observable author;
+  @observable comments = [];
+
+  constructor(id, title, author) {
+    this.id = id;
+    this.title = title;
+    this.author = author;
   }
 
   @action.bound
-  initStore() {
-    this.stories = new Map([
-      [1000, { id: 1000, title: "A story", author: "john" }],
-      [1001, { id: 1001, title: "Another story", author: "jane" }]
-    ]);
-    this.comments = [
-      { id: 5000, storyId: 1000, comment: "A comment", author: "jake" }
-    ];
-    this._fetchList = [];
+  addComment(comment) {
+    this.comments.push(new Comment(comment));
+  }
+}
 
+class Store {
+  @observable stories = new Map();
+  @observable _fetchList = [];
+
+  constructor() {
     autorun(() => {
       if (this._fetchList.length === 0) return; // touch fetchList property to register reaction
-      const storyId = this._shiftFetchList();
+      const storyId = this.pollFetchList();
 
-      if (this.storyComments(storyId).length) {
+      if (this.getStory(storyId).comments.length) {
         console.log(`Fetch for ${storyId}: cache hit`);
         return;
       }
-      const story = this.story(storyId);
+      const story = this.getStory(storyId);
       if (story.isFetching) {
         console.log(`Fetch for ${storyId}: already fetching`);
         return;
@@ -149,13 +159,23 @@ class Store {
 
       console.log(`Fetch for ${storyId}: querying API...`);
       runInAction(() => (story.isFetching = true));
-      apiGetComments(storyId).then(data => {
+      apiGetComments(storyId).then(json => {
         runInAction("apiGetCommentsSuccess", () => {
-          this._addStoryComments(storyId, data);
+          const story = this.getStory(storyId);
+          for (let commentJson of json)
+            story.addComment(commentJson);
           story.isFetching = false;
+          console.log(`Fetch for ${storyId} complete: `, story);
         });
       });
     });
+  }
+
+  @action.bound
+  initStore() {
+    this.addStory(1000, "A story", "john");
+    this.addStory(1001, "Another story", "jane");
+    this.getStory(1000).addComment({ id: 5000, storyId: 1000, comment: "A comment", author: "jake" });
   }
 
   @action.bound
@@ -166,23 +186,18 @@ class Store {
     );
   }
 
-  storyComments(storyId) {
-    return this.comments.filter(comment => comment.storyId === storyId);
+  @action.bound
+  pollFetchList() {
+    return this._fetchList.shift();
   }
 
-  story(storyId) {
+  getStory(storyId) {
     return this.stories.get(storyId);
   }
 
   @action.bound
-  _addStoryComments(storyId, comments) {
-    console.log(
-      "addActiveStoryComments: ",
-      storyId,
-      " ",
-      JSON.stringify(comments)
-    );
-    this.comments.push(...comments);
+  addStory(id, title, author) {
+    this.stories.set(id, new Story(id, title, author));
   }
 }
 
